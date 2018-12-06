@@ -3,13 +3,11 @@
 	<head>
 		<meta charset="utf-8">
 		<title>@model.title</title>
-		<link rel="stylesheet" href="stylesheets/style.css" type="text/css" media="screen" charset="utf-8">
+		<link rel="stylesheet" href="css/main.css" type="text/css" media="screen" charset="utf-8">
 	</head>
-	<body>
+	<body onload="main();">
 		@html.block('content')
-
-		<footer>
-			@html.block('footer')
-		</footer>
+		<script src="js/union-1.0.0.js" type="text/javascript"></script>
+		<script src="js/main.js" type="text/javascript"></script>
 	</body>
 </html>
