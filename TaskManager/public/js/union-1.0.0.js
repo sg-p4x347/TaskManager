@@ -19,31 +19,38 @@ class DomArray extends Array {
 				// DOM manipulation
 				this.parent.elem.removeChild(child.elem);
 				// model manipulation
-                this.splice(i, 1);
+                super.splice(i, 1);
                 return true;
             }
         }
         return false;
-    }
+	}
+	clear() {
+		return this.splice(0, this.length);
+	}
+	set(...items) {
+		return this.splice(0, this.length, ...items);
+	}
 	splice(index, count, ...items) {
-        // DOM removal
-        for (var i = index; i < index + count && i < super.length; i++) {
-            this.parent.elem.removeChild(this[i].elem);
-		}
-        // model manipulation
-		super.splice.apply(this, [index, count].concat(items));
+        
+		// Model update
+		let removed = super.splice(index, count, ...items);
+		// DOM removal
+		removed.forEach(model => {
+			this.parent.elem.removeChild(model.elem);
+		});
 		// DOM addition
 		let insertBefore = this[index + items.length];
-		for (let i = index; i < index + items.length; i++) {
+		for (let i = 0; i < items.length; i++) {
 			if (insertBefore) {
 				// DOM manipulation
-				this.parent.elem.insertBefore(this[i].elem, this.parent.elem.children[index]);
+				this.parent.elem.insertBefore(this[index + i].elem, insertBefore.elem);
 			} else {
 				// DOM manipulation
-				this.parent.elem.appendChild(this[i].elem);
+				this.parent.elem.appendChild(this[index + i].elem);
 			}
 			// model manipulation
-			this[i].parent = this.parent;
+			this[index + i].parent = this.parent;
 		}
 	}
 	where(predicate) {

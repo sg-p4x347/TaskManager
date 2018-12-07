@@ -1,23 +1,61 @@
-﻿function main() {
+﻿
+function main() {
 	let head = new Head();
 	let body = new Body();
 
-	let version1 = new Task('Version1');
-	let tree = new TreeView(new TreeNode(version1.name,version1));
-	tree.nodeSelected = (node) => {
-		if (body.children.length > 1) {
-			body.children.remove(body.children[1]);
-		}
-		body.children.add(node.model);
-	};
-	body.children.add(tree);
+	body.children.add(modal);
+	body.children.add(app);
+	
+}
+class App extends Div {
+	constructor() {
+		super();
+		let self = this;
+		this.lastID = 0;
 
-	let task1 = new Task('Go to bed');
-	tree.rootNode.addChild(new TreeNode(task1.name, task1));
+
+		let tree = new TreeView();
+		tree.addClass('fixed');
+		function newNode(task) {
+			let node = new TreeNode(task);
+			node.name = task.name;
+			task.addEventListener('nameChanged', () => {
+				node.name = task.name;
+			});
+			return node;
+		}
+		tree.addEventListener('nodeSelected', (evt) => {
+			let node = evt.detail;
+			if (self.children.length > 1) {
+				self.children.remove(self.children[1]);
+			}
+			self.children.add(node.model);
+			// hook into task changes
+			node.model.addEventListener('childTaskAdded', (e) => {
+				let childNode = newNode(e.detail);
+				node.addChild(childNode);
+			});
+		});
+		
+		// initialize the tree with some dummy nodes
+		let version1 = newNode(this.newTask("Version 1"));
+
+		let task1 = newNode(this.newTask("A Task"));
+		version1.addChild(task1);
+
+		tree.rootNode = version1;
+		this.tree = tree;
+		this.children.add(tree);
+	}
+	newTask(name) {
+		let task = new Task(++this.lastID);
+		if (name) task.name = name;
+		return task;
+	}
 }
 
 class TreeNode extends Div {
-	constructor(name,model) {
+	constructor(model) {
 		super();
 		//----------------------------------------------------------------
 		// Style
@@ -28,13 +66,10 @@ class TreeNode extends Div {
 		// Model
 		let self = this;
 		this.model = model;
-		this.model.addEventListener('nameChanged', (evt) => {
-			self.name = self.model.name;
-		});
 		this.expanded = true;
 		this.onclick = (evt) => {
 			evt.stopPropagation();
-			self.tree.selectedNode = self;
+			self.parent.select(this);
 		};
 
 		//----------------------------------------------------------------
@@ -50,17 +85,11 @@ class TreeNode extends Div {
 				this.text = text;
 				//----------------------------------------------------------------
 				// Toggle button
-				self.toggleBtn = new class TreeNodeToggle extends Div {
-					constructor() {
-						super();
-						this.addClass('ui-sprite');
-						this.addClass('btn');
-						this.onclick = (evt) => {
-							evt.stopPropagation();
-							self.toggle();
-						};
-					}
-				}();
+				self.toggleBtn = new SpriteButton();
+				self.toggleBtn.addEventListener('click', (evt) => {
+					evt.stopPropagation();
+					self.toggle();
+				});
 
 				this.children.add(self.toggleBtn);
 				this.children.add(text);
@@ -75,19 +104,25 @@ class TreeNode extends Div {
 					column
 					+ 'margin-left:16px';
 			}
+			select(node) {
+				this.parent.select(node);
+			}
 		}();
 
 		this.children.add(this.header);
 		this.children.add(this.body);
 
 		this.toggle();
-		this.name = name || '';
 	}
 	set name(value) {
 		this.header.text.innerHTML = value;
 	}
 	get name() {
 		return this.header.text.innerHTML;
+	}
+	// recursively pass selection up the tree
+	select(node) {
+		this.parent.select(node);
 	}
 	set selected(value) {
 		if (value) {
@@ -118,9 +153,17 @@ class TreeNode extends Div {
 
 		this.expanded = !this.expanded;
 	}
+	static copy(node) {
+		let copy = new TreeNode(node.model);
+		copy.name = node.name;
+		// copy children recursively
+		node.body.children.forEach(child => copy.addChild(TreeNode.copy(child)));
+
+		return copy;
+	}
 }
 class TreeView extends Div {
-	constructor(rootNode) {
+	constructor() {
 		super();
 		this.style =
 			column
@@ -129,9 +172,17 @@ class TreeView extends Div {
 			+ background('rgba(32,32,32,0.75)')
 			+ dropShadow('32px');
 		this.addClass('tree');
-		this.rootNode = rootNode || new TreeNode('root');
-		this.rootNode.tree = this;
-		this.children.add(this.rootNode);
+	}
+	get rootNode() {
+		return this.m_rootNode;
+	}
+	set rootNode(node) {
+		node.tree = this;
+		this.m_rootNode = node;
+		this.children.set(this.rootNode);
+	}
+	select(node) {
+		this.selectedNode = node;
 	}
 	get selectedNode() {
 		return this.m_selectedNode;
@@ -140,23 +191,30 @@ class TreeView extends Div {
 		this.m_selectedNode = node;
 		this.rootNode.selected = false;
 		node.selected = true;
-		if (typeof this.nodeSelected === 'function') {
-			this.nodeSelected(node);
-		}
+		this.elem.dispatchEvent(new CustomEvent('nodeSelected', { detail: node }));
+	}
+	static copy(tree) {
+		let copy = new TreeView();
+		copy.rootNode = TreeNode.copy(tree.rootNode);
+		return copy;
 	}
 }
 class Task extends Div {
-	constructor(name) {
+	constructor(id) {
 		super();
 		//----------------------------------------------------------------
 		// Style
 		this.addClass('task');
+		//----------------------------------------------------------------
+		// Events
+		this.nameChanged = new Event('nameChanged');
 		//----------------------------------------------------------------
 		// Model
 		let self = this;
 		this.nameEditor = new Textbox();
 		this.nameEditor.addClass('text-editor');
 		this.nameEditor.addClass('text-center');
+		
 		this.nameEditor.addEventListener('change', (evt) => {
 			self.elem.dispatchEvent(self.nameChanged);
 		});
@@ -173,27 +231,39 @@ class Task extends Div {
 		}();
 
 		
+		this.id = id;
+		this.name = "A task";
 
-		this.name = name;
-		
+
 		this.dependencies = new TaskList();
-
+		this.dependencies.addEventListener('taskAdded', (evt) => {
+			self.elem.dispatchEvent(new CustomEvent('childTaskAdded', { detail: evt.detail }));
+		});
 		this.children.add(self.body);
 		this.children.add(self.dependencies);
 
-		this.nameChanged = new Event('nameChanged');
+		
 	}
 	get name() {
 		return this.nameEditor.value;
 	}
 	set name(value) {
 		this.nameEditor.value = value;
+		this.elem.dispatchEvent(this.nameChanged);
 	}
 	get description() {
 		return this.descriptionEditor.value;
 	}
 	set description(value) {
 		this.descriptionEditor.value = value;
+	}
+}
+class SpriteButton extends Div {
+	constructor(type) {
+		super();
+		this.addClass('ui-sprite');
+		this.addClass('btn');
+		this.addClass(type);
 	}
 }
 class TaskList extends Div {
@@ -203,23 +273,82 @@ class TaskList extends Div {
 		this.addClass('task-list');
 
 		let self = this;
-		this.addBtn = new class extends Div {
-			constructor() {
-				super();
-				this.addClass('ui-sprite');
-				this.addClass('btn');
-				this.addClass('plus');
-			}
-			onclick() {
-				self.add();
-			}
-		}();
+		this.addBtn = new SpriteButton('plus');
+		this.addBtn.addEventListener('click', (evt) => {
+			self.add();
+		});
 		this.children.add(this.addBtn);
 	}
 	add() {
-		let taskItem = new Textbox();
-		taskItem.addClass('item');
-		taskItem.addClass('text-editor');
-		this.children.add(taskItem);
+		let taskList = this;
+		class TaskListItem extends Div {
+			constructor() {
+				super();
+				//----------------------------------------------------------------
+				// Style
+				this.addClass('item');
+				//----------------------------------------------------------------
+				// Model
+				let self = this;
+				this.nameEditor = new Textbox();
+				this.nameEditor.addClass('text-editor');
+				this.linkToExisting = new SpriteButton('link');
+				this.linkToExisting.addEventListener('click', (evt) => {
+					self.openLinkTree();
+				});
+				this.children.add(this.nameEditor);
+				this.children.add(this.linkToExisting);
+			}
+			openLinkTree() {
+				let self = this;
+				let tree = TreeView.copy(app.tree);
+				tree.addEventListener('nodeSelected', (evt) => {
+					self.nameEditor.value = evt.detail.model.name;
+					self.task = evt.detail.model;
+					modal.close();
+				});
+				modal.open(tree);
+			}
+			get task() {
+				return this.m_task;
+			}
+			set task(task) {
+				this.m_task = task;
+				taskList.elem.dispatchEvent(new CustomEvent('taskAdded', { detail: task }));
+			}
+		}
+		this.children.add(new TaskListItem());
+	}
+	
+}
+class ModalWindow extends Div {
+	constructor() {
+		super();
+		//----------------------------------------------------------------
+		// Style
+		this.addClass('modal-backdrop');
+		this.addClass('hidden');
+		//----------------------------------------------------------------
+		// Model
+		let self = this;
+		this.addEventListener('click', (evt) => {
+			if (evt.srcElement === self.elem) {
+				self.close();
+			}
+		});
+	}
+	get isOpen() {
+		return this.children.length > 0;
+	}
+	open(model) {
+		this.children.set(model);
+		this.removeClass('hidden');
+	}
+	close() {
+		this.addClass('hidden');
+		this.children.clear();
 	}
 }
+// Global utility
+let modal = new ModalWindow();
+let app = new App();
