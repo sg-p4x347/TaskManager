@@ -28,6 +28,9 @@ class TreeNode extends Div {
 		// Model
 		let self = this;
 		this.model = model;
+		this.model.addEventListener('nameChanged', (evt) => {
+			self.name = self.model.name;
+		});
 		this.expanded = true;
 		this.onclick = (evt) => {
 			evt.stopPropagation();
@@ -150,17 +153,35 @@ class Task extends Div {
 		this.addClass('task');
 		//----------------------------------------------------------------
 		// Model
+		let self = this;
 		this.nameEditor = new Textbox();
 		this.nameEditor.addClass('text-editor');
 		this.nameEditor.addClass('text-center');
-
+		this.nameEditor.addEventListener('change', (evt) => {
+			self.elem.dispatchEvent(self.nameChanged);
+		});
 		this.descriptionEditor = new Textarea();
 		this.descriptionEditor.addClass('text-editor');
+		this.body = new class extends Div {
+			constructor() {
+				super();
+				this.addClass('body');
+				this.children.add(self.nameEditor);
+				this.children.add(self.descriptionEditor);
+				
+			}
+		}();
+
+		
 
 		this.name = name;
+		
+		this.dependencies = new TaskList();
 
-		this.children.add(this.nameEditor);
-		this.children.add(this.descriptionEditor);
+		this.children.add(self.body);
+		this.children.add(self.dependencies);
+
+		this.nameChanged = new Event('nameChanged');
 	}
 	get name() {
 		return this.nameEditor.value;
@@ -173,5 +194,32 @@ class Task extends Div {
 	}
 	set description(value) {
 		this.descriptionEditor.value = value;
+	}
+}
+class TaskList extends Div {
+	constructor() {
+		super();
+
+		this.addClass('task-list');
+
+		let self = this;
+		this.addBtn = new class extends Div {
+			constructor() {
+				super();
+				this.addClass('ui-sprite');
+				this.addClass('btn');
+				this.addClass('plus');
+			}
+			onclick() {
+				self.add();
+			}
+		}();
+		this.children.add(this.addBtn);
+	}
+	add() {
+		let taskItem = new Textbox();
+		taskItem.addClass('item');
+		taskItem.addClass('text-editor');
+		this.children.add(taskItem);
 	}
 }

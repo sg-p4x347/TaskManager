@@ -154,7 +154,6 @@ class Body extends Div {
         this.elem = document.getElementsByTagName("body")[0];
     }
 }
-
 //----------------------------------------------------------------
 // CSS declarations
 

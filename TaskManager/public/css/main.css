@@ -10,6 +10,7 @@
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
+	overflow-y:auto;
 }
 .ui-sprite {
 	background-image: url('../img/ui_sprites.png');
@@ -23,6 +24,9 @@
 }
 .ui-sprite.down {
 	background-position: -160px -96px;
+}
+.ui-sprite.plus {
+	background-position: -224px -96px;
 }
 .ui-sprite.btn {
 	width:32px;
@@ -67,12 +71,21 @@
 
 .task {
 	margin-left:450px;
-	width: calc(100% - 450px);
 	height: 100%;
 	padding: 8px;
 	display: flex;
-	flex-direction: column;
+	flex-direction: row;
 	box-sizing: border-box;
+	flex-shrink:0;
+	overflow-x:hidden;
+}
+.task .body {
+	display:flex;
+	flex-direction:column;
+}
+.task * {
+	flex-shrink:0;
+	box-sizing:border-box;
 }
 .text-center {
 	text-align:center;
@@ -91,7 +104,7 @@
 .task textarea.text-editor {
 	font-size: 24px;
 	resize: none;
-	height: 100%;
+	height: 200px;
 }
 .task textarea.text-editor::-webkit-scrollbar {
 	width: 12px;
@@ -109,3 +122,18 @@
 .task .name-editor:focus {
 	border-color:rgba(0,0,255,0.2);
 }
+.task-list {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	padding: 8px;
+	margin: 8px;
+	align-items: center;
+	box-sizing:border-box;
+}
+	.task-list > .item {
+		display: flex;
+		flex-direction: row;
+		padding: 8px;
+		box-sizing: border-box;
+	}
