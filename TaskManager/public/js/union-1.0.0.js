@@ -108,6 +108,15 @@ class Div extends DomElement {
 		this.children.addRange(children);
 	}
 }
+class Button extends DomElement {
+	constructor(text,clickHandler) {
+		super(document.createElement("button"));
+		this.innerHTML = text || '';
+		if (clickHandler) {
+			this.addEventListener('click', clickHandler);
+		}
+	}
+}
 class Input extends DomElement {
 	constructor(value) {
 		super(document.createElement("input"));
@@ -135,6 +144,15 @@ class Textarea extends DomElement {
 	}
 	set value(val) {
 		this.elem.value = val;
+	}
+}
+class Form extends DomElement {
+	constructor() {
+		super(document.createElement("form"));
+		this.children = new DomArray(this);
+	}
+	find(inputName) {
+		return this.children.Find(i => i.elem.name === inputName);
 	}
 }
 class Head extends Div {
