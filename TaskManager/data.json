@@ -1,1 +1,1 @@
-{"tasks":{"1":{"id":1,"name":"V1","description":"","children":[2,3]},"2":{"id":2,"name":"test","description":"","children":[3]},"3":{"id":3,"name":"fest","description":"","children":[]}},"rootTask":1}
+{"tasks":{"1":{"id":1,"name":"V1","description":"","children":[]}},"rootTask":1}
