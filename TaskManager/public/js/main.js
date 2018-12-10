@@ -30,6 +30,12 @@ function main() {
 class App extends Div {
 	constructor() {
 		super();
+		//----------------------------------------------------------------
+		// Style
+		this.addClass('app');
+
+		//----------------------------------------------------------------
+		// Model
 		let self = this;
 		this.lastID = 0;
 
@@ -39,8 +45,9 @@ class App extends Div {
 		
 		tree.addEventListener('nodeSelected', (evt) => {
 			let node = evt.detail;
-			if (self.children.length > 1) {
-				self.children.remove(self.children[1]);
+			let currentTask = self.children.find(c => c.elem.classList.contains('task'));
+			if (currentTask) {
+				self.children.remove(currentTask);
 			}
 			self.children.add(node.model);
 			
@@ -50,23 +57,28 @@ class App extends Div {
 		this.tree = tree;
 		this.children.add(tree);
 
+		
+		let saveBtn = new SpriteButton('save', (evt) => {
+			//localStorage.setItem('app', JSON.stringify(app.export()));
+			ajax('/update', 'POST', app.export());
+		});
+		let priorityBtn = new SpriteButton('exclamation', (evt) => {
+			self.analyzePriority();
+		});
+
+		let toolbar = new Row([priorityBtn,saveBtn]);
+		toolbar.addClass('toolbar');
+		this.children.add(toolbar);
+
 		// try to get data from the server
 		ajax('/get', 'GET', {}, (data) => {
 			let appData = JSON.parse(data);
 			if (appData) {
 				this.import(appData);
+			} else {
+				// initialize the tree with a dummy node
+				tree.rootNode = this.newNode(this.newTask("Root"));
 			}
-			//} else {
-			//	// check to see if there is local data to spin up
-			//	appData = localStorage.getItem('app');
-			//	if (appData) {
-			//		this.import(JSON.parse(appData));
-			//	} else {
-			//		// initialize the tree with a dummy node
-			//		let version1 = this.newTask("Root");
-			//		tree.rootNode = this.newNode(version1);
-			//	}
-			//}
 		});
 		
 	}
@@ -95,6 +107,23 @@ class App extends Div {
 		// recursively construct child nodes from child tasks
 		task.childTasks.forEach(childTask => node.addChild(self.newNode(childTask)));
 		return node;
+	}
+	analyzePriority() {
+		let form = new Form();
+		form.addClass('form');
+		let table = new Table();
+		table.addClass('priority-report');
+		this.tree.rootNode.model.analyzePriority().forEach((task, index) => {
+			let priorityItem = new TableRow([
+				new TableData([paragraph(task.name)]),
+				new TableData([paragraph(task.priority)])
+			]);
+			priorityItem.addClass('priority-item');
+			
+			table.rows.add(priorityItem);
+		});
+		form.children.add(table);
+		modal.open(form);
 	}
 	import(data) {
 		// first create the tasks
@@ -323,11 +352,7 @@ class Task extends Div {
 			constructor() {
 				super();
 				this.addClass('body');
-				let saveBtn = new SpriteButton('save', (evt) => {
-					//localStorage.setItem('app', JSON.stringify(app.export()));
-					ajax('/update', 'POST', app.export());
-				});
-				this.children.add(saveBtn);
+				
 				this.children.add(paragraph('Name','heading'));
 				this.children.add(self.nameEditor);
 				this.children.add(paragraph('Description', 'heading'));
@@ -339,6 +364,8 @@ class Task extends Div {
 		
 		this.id = id;
 		this.name = "A task";
+		this.parentTasks = [];
+		this.priority = 0;
 
 		this.childTaskList = new TaskList(this);
 		this.childTaskList.addEventListener('taskAdded', (evt) => {
@@ -358,7 +385,38 @@ class Task extends Div {
 		return this.childTaskList.tasks;
 	}
 	addChild(task) {
+		task.parentTasks.push(this);
 		this.childTaskList.addListItem(task);
+	}
+	analyzePriority() {
+		let self = this;
+		this.executeRecursiveBottomUp((child, parent) => {
+			child.priority = child.parentTasks.Sum(p => p.priority) + 1;
+		});
+		// sort by priority
+		let results = [];
+		let visited = {};
+		this.executeRecursive((child) => {
+			if (!visited[child.id]) {
+				visited[child.id] = true;
+				results.push(child);
+			}
+		});
+		return results.sort((a, b) => b.priority - a.priority);
+	}
+	executeRecursiveBottomUp(callback, parent) {
+		let self = this;
+		self.childTasks.forEach(child => {
+			callback(child, parent);
+			child.executeRecursiveBottomUp(callback,child);
+		});
+	}
+	executeRecursive(callback) {
+		let self = this;
+		self.childTasks.forEach(child => {
+			callback(child, self);
+			child.executeRecursive(callback);
+		});
 	}
 	isDesendant(task) {
 		return this.childTasks.Any(child => child === task || child.isDesendant(task));
@@ -412,16 +470,20 @@ class Column extends Div {
 	}
 }
 class Row extends Div {
-	constructor() {
-		super();
+	constructor(children) {
+		super(children);
 		this.addClass('row');
 	}
 }
-function paragraph(text,className) {
+function paragraph(text,classNames) {
 	let div = new Div();
 	div.innerHTML = text;
-	if (className)
-		div.addClass(className);
+	if (typeof classNames === 'string') {
+		div.addClass(classNames);
+	} else if (Array.isArray(classNames)) {
+		classNames.forEach(className => div.addClass(className));
+	}
+		
 	return div;
 }
 class TaskListItem extends Div {
@@ -520,7 +582,10 @@ class TaskList extends Div {
 		errorMessage.addClass('hidden');
 		form.children.add(errorMessage);
 
+		form.children.add(paragraph('Name', ['heading','text-center']));
+
 		let nameBox = new Textbox();
+		nameBox.addClass('text-center');
 		nameBox.addClass('text-editor');
 		form.children.add(nameBox);
 
@@ -542,12 +607,18 @@ class TaskList extends Div {
 			}
 		});
 		modal.open(form);
+		nameBox.elem.focus();
 	}
 	addExisting() {
 		let self = this;
+		let form = new Form();
+		form.addClass('column');
+		form.addClass('form');
+
 		let errorMessage = paragraph('');
 		errorMessage.addClass('error-message');
 		errorMessage.addClass('hidden');
+		form.children.add(errorMessage);
 
 		let tree = TreeView.copy(app.tree, task => {
 			let node = new TreeNode(task);
@@ -565,8 +636,9 @@ class TaskList extends Div {
 				errorMessage.innerHTML = "You cannot create a circular dependency";
 			}
 		});
+		form.children.add(tree);
 
-		modal.open(new Column([errorMessage,tree]));
+		modal.open(form);
 	}
 	
 }
@@ -592,10 +664,12 @@ class ModalWindow extends Div {
 	open(model) {
 		this.children.set(model);
 		this.removeClass('hidden');
+		app.addClass('blur');
 	}
 	close() {
 		this.addClass('hidden');
 		this.children.clear();
+		app.removeClass('blur');
 	}
 }
 // Global utility

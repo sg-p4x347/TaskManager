@@ -146,6 +146,41 @@ class Textarea extends DomElement {
 		this.elem.value = val;
 	}
 }
+class ListItem extends DomElement {
+	constructor(children) {
+		super(document.createElement('li'));
+		this.children = new DomArray(this);
+		this.children.addRange(children);
+	}
+}
+class Table extends DomElement {
+	constructor(rows) {
+		super(document.createElement('table'));
+		this.rows = new DomArray(this);
+		this.rows.addRange(rows);
+	}
+}
+class TableRow extends DomElement {
+	constructor(cells) {
+		super(document.createElement('tr'));
+		this.cells = new DomArray(this);
+		this.cells.addRange(cells);
+	}
+}
+class TableData extends DomElement {
+	constructor(children) {
+		super(document.createElement('td'));
+		this.children = new DomArray(this);
+		this.children.addRange(children);
+	}
+}
+class OrderedList extends DomElement {
+	constructor(children) {
+		super(document.createElement('ol'));
+		this.children = new DomArray(this);
+		this.children.addRange(children);
+	}
+}
 class Form extends DomElement {
 	constructor() {
 		super(document.createElement("form"));

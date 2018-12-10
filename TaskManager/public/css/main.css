@@ -4,13 +4,20 @@
 	height: 100vh;
 	margin: 0;
 	padding: 0;
-	background: url('../img/background.png');
+	
 	color: white;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
 	overflow-y:auto;
+}
+.app {
+	width:100%;
+	height:100%;
+	display:flex;
+	flex-direction:row;
+	background: url('../img/background.png');
 }
 .ui-sprite {
 	background-image: url('../img/ui_sprites.png');
@@ -37,6 +44,10 @@
 .ui-sprite.save {
 	background-position: -64px 0px;
 }
+.ui-sprite.exclamation {
+	background-position: -64px -128px;
+}
+
 .ui-sprite.btn {
 	width:32px;
 	height:32px;
@@ -45,12 +56,7 @@
 .btn {
 	color:white;
 }
-button.btn:hover {
-	background-color: rgba(255,255,255,0.3);
-}
-button.btn:active {
-	background-color: rgba(0,0,0,0.3);
-}
+
 .ui-sprite.btn:hover {
 	filter: brightness(60%);
 }
@@ -142,7 +148,7 @@ button.btn:active {
 	resize: none;
 	height: 200px;
 }
-.task .heading {
+.task .heading, .form .heading {
 	user-select:none;
 	font-weight:bold;
 	font-size:1.5em;
@@ -201,13 +207,15 @@ button.btn:active {
 .task-list .item *:first-child {
 	margin-right:8px;
 }
-
+.blur {
+	filter:blur(2px);
+}
 .modal-backdrop {
 	position:fixed;
 	top:0px;
 	left:0px;
 	z-index:1000;
-	background-color:rgba(255,255,255,0.5);
+	background-color:rgba(255,255,255,0.1);
 	width:100vw;
 	height:100vh;
 	overflow-y:auto;
@@ -236,20 +244,58 @@ button.btn:active {
 	font-weight:bold;
 	background-color:coral;
 	padding:8px;
-	margin:8px;
 	text-align:center;
 }
+.form .error-message {
+	margin-bottom: 8px;
+}
 button.btn {
-	background-color:rgba(0,0,0,0.5);
+	font-size:1.5em;
+	color: rgb(225,225,225);
+	background-color:rgba(48,48,48,0.5);
 	padding:8px;
 	margin:8px;
-	box-shadow: 0 0 8px rgba(0,0,0,0.1);
+	box-shadow: -1px -1px 1px rgba(0,0,0,0.6) inset, 1px 1px 1px rgba(255,255,255,0.1) inset, 0 0 16px rgba(0,0,0,0.4);
 	cursor:pointer;
 	border:none;
 	outline:none;
+	border-radius:4px;
+}
+button.btn:active {
+	background-color: rgba(0,0,0,0.3);
+	box-shadow: 1px 1px 1px rgba(0,0,0,0.6) inset, -1px -1px 1px rgba(255,255,255,0.1) inset;
+}
+button.btn:hover {
+	background-color: rgba(255,255,255,0.3);
 }
 .form {
 	background-image:url('../img/background.png');
 	border-radius:32px;
 	padding:32px;
 }
+.toolbar {
+	position:fixed;
+	top:0px;
+	right:0px;
+
+	display:flex;
+	flex-direction:row;
+	padding:8px;
+}
+table.priority-report {
+	border-spacing:0px;
+}
+tr.priority-item > td {
+	padding:4px;
+	border-top: 1px solid rgba(0,0,0,0.4);
+	border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+tr.priority-item > td:first-child {
+	text-align: left;
+	padding-left:32px;
+}
+	tr.priority-item > td:last-child {
+		text-align: right;
+		color: green;
+		padding-right: 32px;
+	}
